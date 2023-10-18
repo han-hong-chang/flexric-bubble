@@ -26,7 +26,9 @@ LabelInfoItem_t * kpm_enc_label_info_asn(const label_info_lst_t * label_info)
     }
 
     if (label_info->sliceID != NULL) {
-      assert(false && "not implemented");
+      label_info_asn->measLabel.sliceID = (struct S_NSSAI*)calloc(1, sizeof(struct S_NSSAI));
+      label_info_asn->measLabel.sliceID->sST = label_info->sliceID->sST;
+      //TODO: sD
     }
     if (label_info->fiveQI != NULL) {
       assert(false && "not implemented");
