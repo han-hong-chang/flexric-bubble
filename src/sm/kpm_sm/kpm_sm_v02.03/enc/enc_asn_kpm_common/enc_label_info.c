@@ -28,7 +28,14 @@ LabelInfoItem_t * kpm_enc_label_info_asn(const label_info_lst_t * label_info)
     }
 
     if (label_info->sliceID != NULL) {
-      assert(false && "not implemented");
+      label_info_asn->measLabel.sliceID = calloc(1, sizeof(*label_info_asn->measLabel.sliceID));
+      INT8_TO_OCTET_STRING(label_info->sliceID->sST, &label_info_asn->measLabel.sliceID->sST);
+      if (label_info->sliceID->sD != NULL)
+      {
+        label_info_asn->measLabel.sliceID->sD = calloc(1, sizeof(*label_info_asn->measLabel.sliceID->sD)*3);
+        for (int i = 0; i < 3; i++)
+          INT8_TO_OCTET_STRING(*label_info->sliceID->sD[i], &label_info_asn->measLabel.sliceID->sD[i]);
+      }
     }
     if (label_info->fiveQI != NULL) {
       assert(false && "not implemented");

@@ -21,7 +21,7 @@ label_info_lst_t cp_label_info(label_info_lst_t const *src)
   }
 
   if (src->sliceID != NULL) {
-    dst.sliceID = calloc(1, sizeof(S_NSSAI_t));
+    dst.sliceID = calloc(1, sizeof(s_nssai_t));
     dst.sliceID->sST = src->sliceID->sST;
     for(int i=0;i<3;i++){
       dst.sliceID->sD[i] = calloc(1, sizeof(uint8_t));

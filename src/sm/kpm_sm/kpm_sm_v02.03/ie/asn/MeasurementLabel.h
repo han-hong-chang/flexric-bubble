@@ -17,6 +17,7 @@
 #include "FiveQI.h"
 #include "QosFlowIdentifier.h"
 #include "QCI.h"
+#include "S-NSSAI.h"
 #include <NativeInteger.h>
 #include <constr_SEQUENCE.h>
 
@@ -69,14 +70,12 @@ typedef enum MeasurementLabel__avg {
 	 */
 } e_MeasurementLabel__avg;
 
-/* Forward declarations */
-struct S_NSSAI;
 
 /* MeasurementLabel */
 typedef struct MeasurementLabel {
 	long	*noLabel;	/* OPTIONAL */
 	PLMNIdentity_t	*plmnID;	/* OPTIONAL */
-	struct S_NSSAI	*sliceID;	/* OPTIONAL */
+	S_NSSAI_t	*sliceID;	/* OPTIONAL */
 	FiveQI_t	*fiveQI;	/* OPTIONAL */
 	QosFlowIdentifier_t	*qFI;	/* OPTIONAL */
 	QCI_t	*qCI;	/* OPTIONAL */

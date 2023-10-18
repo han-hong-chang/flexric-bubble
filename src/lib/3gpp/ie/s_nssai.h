@@ -12,10 +12,10 @@ extern "C" {
 
 // 6.2.3.12   S-NSSAI
 
-typedef struct S_NSSAI {
+typedef struct s_nssai {
     uint8_t	  sST;
 	uint8_t	  *sD[3];	/* OPTIONAL */
-} S_NSSAI_t;
+} s_nssai_t;
 
 
 #ifdef __cplusplus
