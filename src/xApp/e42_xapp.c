@@ -433,7 +433,7 @@ void send_ric_subscription_delete(e42_xapp_t* xapp, ric_gen_id_t ric_id)
   assert(xapp != NULL);
   assert(xapp->handle_msg[E42_RIC_SUBSCRIPTION_DELETE_REQUEST] != NULL);
 
-  e2ap_msg_t msg = {.type = E42_RIC_SUBSCRIPTION_DELETE_REQUEST };
+ e2ap_msg_t msg = {.type = E42_RIC_SUBSCRIPTION_DELETE_REQUEST };
 
   msg.u_msgs.e42_ric_sub_del_req.sdr.ric_id = ric_id;
   msg.u_msgs.e42_ric_sub_del_req.xapp_id = xapp->id;

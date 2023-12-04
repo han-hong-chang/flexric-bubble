@@ -86,7 +86,7 @@ bool eq_slice_ind_hdr(slice_ind_hdr_t* m0, slice_ind_hdr_t* m1);
 
 
 //////////////////////////////////////
-// RIC Indication Message 
+// RIC  
 /////////////////////////////////////
 
 

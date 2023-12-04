@@ -29,7 +29,8 @@
 #include <time.h>
 #include <unistd.h>
 #include <pthread.h>
-
+int storedMeas [200][6];
+int meas_cnt;
 static
 byte_array_t copy_str_to_ba(const char* str)
 {
@@ -52,7 +53,7 @@ static
 pthread_mutex_t mtx;
 
 static
-void sm_cb_kpm(sm_ag_if_rd_t const* rd, global_e2_node_id_t const* e2_node)
+/*void sm_cb_kpm(sm_ag_if_rd_t const* rd, global_e2_node_id_t const* e2_node)
 {
   assert(rd != NULL);
   assert(rd->type == INDICATION_MSG_AGENT_IF_ANS_V0);
@@ -71,8 +72,38 @@ void sm_cb_kpm(sm_ag_if_rd_t const* rd, global_e2_node_id_t const* e2_node)
     ue_id = cp_ue_id_e2sm(&kpm->msg.frm_3.meas_report_per_ue[0].ue_meas_report_lst);
   }
   printf("UE ID %ld \n ", ue_id.gnb.amf_ue_ngap_id);
-}
+}*/
+void sm_cb_kpm_oran_slice(sm_ag_if_rd_t const* rd, global_e2_node_id_t const* e2_node)
+{
+  assert(rd != NULL);
+  assert(rd->type == INDICATION_MSG_AGENT_IF_ANS_V0);
+  assert(rd->ind.type == KPM_STATS_V3_0);
 
+  static int indicationCount = 0;
+
+  kpm_ind_data_t const* kpm = &rd->ind.kpm.ind;
+
+  int64_t now = time_now_us();
+
+  printf("----------Indication # %d from E2-Node type %d nb_id %d-------------\n", indicationCount++, e2_node->type, e2_node->nb_id.nb_id);
+
+  meas_cnt = indicationCount;
+
+  for(unsigned int i=0;i<kpm->msg.frm_2.meas_data_lst_len;i++){
+    printf("Slice {%d-%d%d%d} measurment \"%s\" = ", kpm->msg.frm_2.meas_info_cond_ue_lst[i].matching_cond_lst->label_info_lst.sliceID->sST,
+           *kpm->msg.frm_2.meas_info_cond_ue_lst[i].matching_cond_lst->label_info_lst.sliceID->sD[0],
+           *kpm->msg.frm_2.meas_info_cond_ue_lst[i].matching_cond_lst->label_info_lst.sliceID->sD[1],
+           *kpm->msg.frm_2.meas_info_cond_ue_lst[i].matching_cond_lst->label_info_lst.sliceID->sD[2],
+           kpm->msg.frm_2.meas_info_cond_ue_lst[i].meas_type.name.buf);
+
+    if(kpm->msg.frm_2.meas_data_lst[i].meas_record_lst->value == INTEGER_MEAS_VALUE){
+      printf("%d\n", kpm->msg.frm_2.meas_data_lst[i].meas_record_lst->int_val);
+      // storedMeas[indicationCount][i] = kpm->msg.frm_2.meas_data_lst[i].meas_record_lst->int_val;
+    }
+    else if(kpm->msg.frm_2.meas_data_lst[i].meas_record_lst->value == REAL_MEAS_VALUE)
+      printf("name %s, value %.2f\n", kpm->msg.frm_2.meas_info_cond_ue_lst[i].meas_type.name.buf, kpm->msg.frm_2.meas_data_lst[i].meas_record_lst->real_val);
+  }
+}
 static
 kpm_event_trigger_def_t gen_ev_trig(uint64_t period)
 {
@@ -102,7 +133,28 @@ meas_info_format_1_lst_t gen_meas_info_format_1_lst(const char* action)
 
   return dst;
 }
+/*modified by joe*/
+static
+meas_info_format_3_lst_t gen_meas_info_format_3_lst(const char action[])
+{
+  meas_info_format_3_lst_t dst = {0};
 
+  dst.meas_type.type = NAME_MEAS_TYPE;
+  // ETSI TS 128 552
+  dst.meas_type.name = copy_str_to_ba(  action );
+
+  dst.matching_cond_lst_len = 1;
+  dst.matching_cond_lst = calloc(1, sizeof(matching_condition_format_3_lst_t));
+  assert(dst.matching_cond_lst  != NULL && "Memory exhausted");
+
+
+  dst.matching_cond_lst->cond_type = LABEL_INFO;
+  dst.matching_cond_lst->label_info_lst.noLabel = calloc(1, sizeof(enum_value_e));
+  *dst.matching_cond_lst->label_info_lst.noLabel = TRUE_ENUM_VALUE;
+
+  return dst;
+}
+/*modified by joe*/
 static
 kpm_act_def_format_1_t gen_act_def_frmt_1(const char* action)
 {
@@ -119,7 +171,27 @@ kpm_act_def_format_1_t gen_act_def_frmt_1(const char* action)
  
   return dst;
 }
+/*modified by joe*/
+static
+kpm_act_def_format_3_t gen_act_def_frmt_3(const char action[][25])
+{
+  int count = 0;
+  kpm_act_def_format_3_t dst = {0};
 
+  dst.gran_period_ms = 100;
+
+  // [1, 65535]
+  dst.meas_info_lst_len = 2;
+  dst.meas_info_lst = calloc(dst.meas_info_lst_len, sizeof(meas_info_format_3_lst_t));
+  assert(dst.meas_info_lst != NULL && "Memory exhausted");
+
+  for(unsigned i=0;i<dst.meas_info_lst_len;i++){
+    dst.meas_info_lst[count++] = gen_meas_info_format_3_lst(action[i]);
+  }
+
+  return dst;
+}
+/*modified by joe*/
 static
 kpm_act_def_format_4_t gen_act_def_frmt_4(const char* action)
 {
@@ -152,17 +224,17 @@ kpm_act_def_format_4_t gen_act_def_frmt_4(const char* action)
   return dst;
 }
 
-
+/*modified by joe, change to format3*/
 static
-kpm_act_def_t gen_act_def(const char* act)
+kpm_act_def_t gen_act_def(const char act[][25])
 {
   kpm_act_def_t dst = {0}; 
 
-  dst.type = FORMAT_4_ACTION_DEFINITION; 
-  dst.frm_4 = gen_act_def_frmt_4(act);
+  dst.type = FORMAT_3_ACTION_DEFINITION; 
+  dst.frm_3 = gen_act_def_frmt_3(act);
   return dst;
 }
-
+/*modified by joe, change to format3*/
 
 
 /*
@@ -1066,13 +1138,15 @@ int main(int argc, char *argv[])
   kpm_sub.sz_ad = 1;
   kpm_sub.ad = calloc(1, sizeof(kpm_act_def_t));
   assert(kpm_sub.ad != NULL && "Memory exhausted");
-  const char act[] = "DRB.RlcSduDelayDl";
+  /*modified by joe*/
+  const char act[][25] = {"DRB.UEThpDl.SNSSAI", "RRU.PrbUsedDl.SNSSAI"};
+  /*modified by joe*/
   *kpm_sub.ad = gen_act_def(act); 
 
   const int KPM_ran_function = 2;
 
   for(size_t i =0; i < nodes.len; ++i){ 
-    h[i] = report_sm_xapp_api(&nodes.n[i].id, KPM_ran_function, &kpm_sub, sm_cb_kpm);
+    h[i] = report_sm_xapp_api(&nodes.n[i].id, KPM_ran_function, &kpm_sub, sm_cb_kpm_oran_slice);
     assert(h[i].success == true);
   } 
   free_kpm_sub_data(&kpm_sub); 
@@ -1114,7 +1188,7 @@ int main(int argc, char *argv[])
   // END RC 
   //////////// 
 
-  sleep(5);
+  sleep(600);
 
   for(int i = 0; i < nodes.len; ++i){
     // Remove the handle previously returned
